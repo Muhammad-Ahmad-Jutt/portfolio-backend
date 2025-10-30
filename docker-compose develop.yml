@@ -1,0 +1,7 @@
+services:
+  web:
+    build: .
+    container_name: python-django-server
+    ports:
+      - "8000:8000"  # Map container port 8000 to host 8000
+    command: sh -c "python manage.py runserver 0.0.0.0:8000"  # Bind to all interfaces
