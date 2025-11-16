@@ -34,4 +34,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Expose default port for your app if needed
-EXPOSE 8000
+EXPOSE 5000
