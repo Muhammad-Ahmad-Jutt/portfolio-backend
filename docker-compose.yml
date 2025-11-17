@@ -4,4 +4,4 @@ services:
     container_name: python-flask-server
     ports:
       - "5000:5000"  # Map container port 8000 to host 8000
-    command: sh -c "flask --app main run --host=0.0.0.0 --port=5000"  # Bind to all interfaces
+    command: sh -c "python run.py"  # Bind to all interfaces
