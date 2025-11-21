@@ -21,7 +21,9 @@ def create_app():
 
     # Register your API blueprints
     register_blueprints(app)
-
+    @app.route("/")
+    def index():
+        return {"message": "Welcome to the API homepage!"}
     # --------------------------
     # JWT user loader for Flask-Authorize
     # --------------------------
