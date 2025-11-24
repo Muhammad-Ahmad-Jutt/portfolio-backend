@@ -31,6 +31,7 @@ class Permission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     action = db.Column(db.String(50), nullable=False)
     resource = db.Column(db.String(100), nullable=False)
+    per_no = db.Column(db.Integer, unique=True, nullable=False)
 
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -72,8 +73,9 @@ class Job(db.Model, PermissionsMixin):
     active_till = db.Column(db.Date)
     reactivated_date = db.Column(db.Date)
     job_category_id = db.Column(db.Integer, db.ForeignKey("job_category.id"))
-    user = db.relationship("User")
+    user = db.relationship("User", foreign_keys=[user_id])
     job_category = db.relationship("JobCategory")
+
 
 class JobSalary(db.Model):
     __tablename__ = "job_salary"
