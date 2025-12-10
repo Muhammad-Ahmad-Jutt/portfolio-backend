@@ -14,6 +14,71 @@ job_bp=Blueprint("jobs",__name__)
 
 job_bp = Blueprint("jobs", __name__)
 
+
+@job_bp.route("/job/applied", methods=['GET'])
+@jwt_required()
+def applied_jobs():
+    try:
+        current_user_id = int(get_jwt_identity())
+        applications = JobApplication.query.filter_by(applicant_user_id=current_user_id).all()
+        print(applications)
+        result = []
+        for job in applications:
+            result.append({
+                "id": job.job_id,
+                "title": job.job.title,
+                # "description": job.description,
+                # "active": job.active,
+                # "accepting_applicant": job.accepting_applicant,
+                "posted_date": job.job.posted_date.isoformat(),
+                "job_category": job.job.job_category.category_name if job.job.job_category else None,
+                # "user_id": job.user_id,
+                "application_status":job.application_status
+            })
+        return jsonify(result), 200
+
+                # return jsonify({"success":True, "message":"Jo Applied successfully"})
+    except Exception as e:
+        return jsonify({"success":False,"message": f"An exception occured -->'{e}'"}), 404
+
+@job_bp.route("/job/applicaton/<int:job_id>", methods=['GET'])
+@jwt_required()
+def applied_job_details(job_id):
+    try:
+
+        current_user_id = int(get_jwt_identity())
+        application = JobApplication.query.filter_by(applicant_user_id=current_user_id,job_id=job_id).first()
+        result = {
+            # "id": application..id,
+            "title": application.job.title,
+            "description": application.job.description,
+            "active": application.job.active,
+            "accepting_applicant": application.job.accepting_applicant,
+            "posted_date": application.job.posted_date.isoformat(),
+            "job_category": application.job.job_category.category_name if application.job.job_category else None,
+            "user": f"{application.job.user.firstname} {application.job.user.lastname}",
+            "application_status":application.application_status,
+            "applied_date":application.applied_date
+            # "employer_user_id":user.id
+        }
+        return jsonify(result), 200
+
+
+                # return jsonify({"success":True, "message":"Jo Applied successfully"})
+    except Exception as e:
+        return jsonify({"success":False,"message": f"An exception occured -->'{e}'"}), 404
+
+
+
+
+
+
+
+
+
+
+
+
 # ---------------------------
 # CREATE a Job
 # ---------------------------
