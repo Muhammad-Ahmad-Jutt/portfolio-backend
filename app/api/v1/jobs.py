@@ -3,7 +3,7 @@
 from flask import Blueprint,request, jsonify
 from werkzeug.exceptions import BadRequest, BadRequestKeyError
 from ...extensions import db
-from ...models.user import Role, User,JobCategory,Job
+from ...models.user import Role, User,JobCategory,Job, JobApplication
 from datetime import datetime
 from flask_jwt_extended import jwt_required, get_jwt_identity#, current_user
 from flask_login import current_user,login_required
@@ -31,19 +31,19 @@ def create_job():
     job_category_id = data.get("job_category_id")
 
     if not all([title, description, active_date_str, active_till_str, job_category_id]):
-        return jsonify({"error": "Missing required fields"}), 400
+        return jsonify({"success":False,"error": "Missing required fields"}), 400
 
     # Convert string to Python date
     try:
         active_date = datetime.strptime(active_date_str, "%Y-%m-%d").date()
         active_till = datetime.strptime(active_till_str, "%Y-%m-%d").date()
     except ValueError:
-        return jsonify({"error": "Dates must be in YYYY-MM-DD format"}), 400
+        return jsonify({"success":False,"error": "Dates must be in YYYY-MM-DD format"}), 400
 
     # Ensure job category exists
     job_category = JobCategory.query.get(job_category_id)
     if not job_category:
-        return jsonify({"error": "Job category not found"}), 404
+        return jsonify({"success":False,"error": "Job category not found"}), 404
 
     job = Job(
         title=title,
@@ -58,6 +58,7 @@ def create_job():
     db.session.commit()
 
     return jsonify({
+        "success":True,
         "message": "Job created successfully",
         "job": {
             "id": job.id,
@@ -101,8 +102,9 @@ def get_all_jobs():
 def get_job(id):
     job = Job.query.get(id)
     if not job:
-        return jsonify({"message": "Job not found"}), 404
+        return jsonify({"success":False,"message": "Job not found"}), 404
 
+    user = User.query.filter_by(id=job.user_id).first()
     result = {
         "id": job.id,
         "title": job.title,
@@ -111,7 +113,8 @@ def get_job(id):
         "accepting_applicant": job.accepting_applicant,
         "posted_date": job.posted_date.isoformat(),
         "job_category": job.job_category.category_name if job.job_category else None,
-        "user_id": job.user_id
+        "user": f"{user.firstname} {user.lastname}",
+        "employer_user_id":user.id
     }
     return jsonify(result), 200
 
@@ -124,11 +127,11 @@ def get_job(id):
 def update_job(id):
     job = Job.query.get(id)
     if not job:
-        return jsonify({"message": "Job not found"}), 404
+        return jsonify({"success":False,"message": "Job not found"}), 404
 
     current_user_id = int(get_jwt_identity())
     if job.user_id != current_user_id:
-        return jsonify({"message": "You are not allowed to update this job"}), 403
+        return jsonify({"success":False,"message": "You are not allowed to update this job"}), 403
 
     data = request.get_json()
     job.title = data.get("title", job.title)
@@ -140,11 +143,46 @@ def update_job(id):
     if job_category_id:
         category = JobCategory.query.get(job_category_id)
         if not category:
-            return jsonify({"message": "Invalid job category"}), 400
+            return jsonify({"success":False,"message": "Invalid job category"}), 400
         job.job_category_id = job_category_id
 
     db.session.commit()
-    return jsonify({"message": "Job updated", "job_id": job.id}), 200
+    return jsonify({"success":True,"message": "Job updated", "job_id": job.id}), 200
+
+
+@job_bp.route("/job/apply", methods=['POST'])
+@jwt_required()
+def apply_job():
+    data = request.json
+    id = data.get("job_id")
+    if not id:
+
+        return ({"success":False, "message":"Id is required"})
+    try:
+        job_id = Job.query.filter_by(id=id).first()
+        if not job_id:
+            return jsonify({"success":False,"message": "Job not found"}), 404
+
+        current_user_id = int(get_jwt_identity())
+        existing = JobApplication.query.filter_by(
+                        job_id=job_id.id,
+                        employer_user_id=job_id.user_id,
+                        applicant_user_id=current_user_id
+                    ).first()
+
+        if existing:
+            return jsonify({"success": False, "message": "You have already applied to this job."}), 400
+
+
+        job_application = JobApplication(employer_user_id=job_id.user_id,
+                                         applicant_user_id=current_user_id,
+                                         job_id=job_id.id)
+        db.session.add(job_application)
+        db.session.commit()
+        return jsonify({"success":True, "message":"Jo Applied successfully"})
+    except Exception as e:
+        return jsonify({"success":False,"message": f"An exception occured -->'{e}'"}), 404
+
 
 
 # ---------------------------
@@ -153,17 +191,19 @@ def update_job(id):
 @job_bp.route("/job/<int:id>", methods=["DELETE"])
 @jwt_required()
 def delete_job(id):
+    if not id:
+        return ({"success":False, "message":"Id is required"})
     job = Job.query.get(id)
     if not job:
-        return jsonify({"message": "Job not found"}), 404
+        return jsonify({"success":False,"message": "Job not found"}), 404
 
     current_user_id = int(get_jwt_identity())
     if job.user_id != current_user_id:
-        return jsonify({"message": "You are not allowed to delete this job"}), 403
+        return jsonify({"success":False,"message": "You are not allowed to delete this job"}), 403
 
     db.session.delete(job)
     db.session.commit()
-    return jsonify({"message": "Job deleted"}), 200
+    return jsonify({"success":True,"message": "Job deleted"}), 200
 
 
 # @job_bp.route("/Job_Listings", methods=["POST"])
@@ -185,17 +225,17 @@ def create_job_category():
     print(data)
     name = data.get("category_name")
     if not name:
-        return jsonify({"message": "Category name is required"}), 400
+        return jsonify({"success":False,"message": "Category name is required"}), 400
 
     # Check if category already exists
     if JobCategory.query.filter_by(category_name=name).first():
-        return jsonify({"message": "Category already exists"}), 409
+        return jsonify({"success":False,"message": "Category already exists"}), 409
 
     category = JobCategory(category_name=name)
     db.session.add(category)
     db.session.commit()
 
-    return jsonify({"message": "Job category created", "id": category.id}), 201
+    return jsonify({"success":True,"message": "Job category created", "id": category.id}), 201
 
 # ---------------------------
 # READ all JobCategories
@@ -226,20 +266,20 @@ def get_job_category(id):
 def update_job_category(id):
     category = JobCategory.query.get(id)
     if not category:
-        return jsonify({"message": "Job category not found"}), 404
+        return jsonify({"success":False,"message": "Job category not found"}), 404
 
     data = request.json
     name = data.get("category_name")
     if not name:
-        return jsonify({"message": "Category name is required"}), 400
+        return jsonify({"success":False,"message": "Category name is required"}), 400
 
     # Optional: check duplicate
     if JobCategory.query.filter(JobCategory.category_name == name, JobCategory.id != id).first():
-        return jsonify({"message": "Category name already exists"}), 409
+        return jsonify({"success":False,"message": "Category name already exists"}), 409
 
     category.category_name = name
     db.session.commit()
-    return jsonify({"message": "Job category updated", "id": category.id}), 200
+    return jsonify({"success":True,"message": "Job category updated", "id": category.id}), 200
 
 # ---------------------------
 # DELETE JobCategory
@@ -249,8 +289,8 @@ def update_job_category(id):
 def delete_job_category(id):
     category = JobCategory.query.get(id)
     if not category:
-        return jsonify({"message": "Job category not found"}), 404
+        return jsonify({"success":False,"message": "Job category not found"}), 404
 
     db.session.delete(category)
     db.session.commit()
-    return jsonify({"message": "Job category deleted"}), 200
+    return jsonify({"success":True,"message": "Job category deleted"}), 200

@@ -79,17 +79,18 @@ def login():
     password = data.get("password")
 
     if not email or not password:
-        return jsonify({"error": "Email and password are required"}), 400
+        return jsonify({'success':False,"message": "Email and password are required"}), 400
 
     user = User.query.filter_by(email=email).first()
     if not user or not check_password_hash(user.password_hash, password):
-        return jsonify({"error": "Invalid email or password"}), 401
+        return jsonify({'success':False,"message": "Invalid email or password"}), 401
 
     access_token = create_access_token(identity=str(user.id))
 
     user_role = user.roles[0].name if user.roles else None
 
     return jsonify({
+        "success":True,
         "message": "Login successful",
         "user": {
             "firstname": user.firstname,
