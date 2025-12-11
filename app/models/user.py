@@ -65,6 +65,7 @@ class Job(db.Model, PermissionsMixin):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     title = db.Column(db.String(255), nullable=False)
+    company = db.Column(db.String(255), nullable=False, default="unknow") # will commit when started a new db data
     description = db.Column(db.Text, nullable=False)
     active = db.Column(db.Boolean, default=True)
     accepting_applicant = db.Column(db.Boolean, default=True)

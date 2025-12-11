@@ -14,63 +14,150 @@ job_bp=Blueprint("jobs",__name__)
 
 job_bp = Blueprint("jobs", __name__)
 
+
+@job_bp.route("/job/applied", methods=['GET'])
+@jwt_required()
+def applied_jobs():
+    try:
+        current_user_id = int(get_jwt_identity())
+        applications = JobApplication.query.filter_by(applicant_user_id=current_user_id).all()
+        print(applications)
+        result = []
+        for job in applications:
+            result.append({
+                "id": job.job_id,
+                "title": job.job.title,
+                # "description": job.description,
+                # "active": job.active,
+                # "accepting_applicant": job.accepting_applicant,
+                "posted_date": job.job.posted_date.isoformat(),
+                "job_category": job.job.job_category.category_name if job.job.job_category else None,
+                # "user_id": job.user_id,
+                "application_status":job.application_status
+            })
+        return jsonify(result), 200
+
+                # return jsonify({"success":True, "message":"Jo Applied successfully"})
+    except Exception as e:
+        return jsonify({"success":False,"message": f"An exception occured -->'{e}'"}), 404
+
+@job_bp.route("/job/applicaton/<int:job_id>", methods=['GET'])
+@jwt_required()
+def applied_job_details(job_id):
+    try:
+
+        current_user_id = int(get_jwt_identity())
+        application = JobApplication.query.filter_by(applicant_user_id=current_user_id,job_id=job_id).first()
+        result = {
+            # "id": application..id,
+            "title": application.job.title,
+            "description": application.job.description,
+            "active": application.job.active,
+            "accepting_applicant": application.job.accepting_applicant,
+            "posted_date": application.job.posted_date.isoformat(),
+            "job_category": application.job.job_category.category_name if application.job.job_category else None,
+            "user": f"{application.job.user.firstname} {application.job.user.lastname}",
+            "application_status":application.application_status,
+            "applied_date":application.applied_date
+            # "employer_user_id":user.id
+        }
+        return jsonify(result), 200
+
+
+                # return jsonify({"success":True, "message":"Jo Applied successfully"})
+    except Exception as e:
+        return jsonify({"success":False,"message": f"An exception occured -->'{e}'"}), 404
+
+
+
+
+
+
+
+
+
+
+
+
 # ---------------------------
 # CREATE a Job
 # ---------------------------
 
 @job_bp.route("/job", methods=["POST"])
-@jwt_required()  # ensures the user is logged in via JWT/Flask-Login
-
+@jwt_required()  
 def create_job():
-    data = request.get_json()
-
-    title = data.get("title")
-    description = data.get("description")
-    active_date_str = data.get("active_date")
-    active_till_str = data.get("active_till")
-    job_category_id = data.get("job_category_id")
-
-    if not all([title, description, active_date_str, active_till_str, job_category_id]):
-        return jsonify({"success":False,"error": "Missing required fields"}), 400
-
-    # Convert string to Python date
     try:
-        active_date = datetime.strptime(active_date_str, "%Y-%m-%d").date()
-        active_till = datetime.strptime(active_till_str, "%Y-%m-%d").date()
-    except ValueError:
-        return jsonify({"success":False,"error": "Dates must be in YYYY-MM-DD format"}), 400
+        data = request.get_json()
+        title = data.get("title")
+        description = data.get("description")
+        active_date_str = data.get("active_date")
+        active_till_str = data.get("active_till")
+        job_category_id = data.get("job_category_id")
+        active_status  =data.get('active')
+        accepting_applicatants = data.get('accepting_applicant')
+        company = data.get("company")
+        if not all([title, description, active_date_str, active_till_str, job_category_id, company, active_status, accepting_applicatants]):
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
 
-    # Ensure job category exists
-    job_category = JobCategory.query.get(job_category_id)
-    if not job_category:
-        return jsonify({"success":False,"error": "Job category not found"}), 404
 
-    job = Job(
-        title=title,
-        description=description,
-        active_date=active_date,
-        active_till=active_till,
-        job_category_id=job_category_id,
-        user_id=current_user.id,
-    )
+        # Convert string to Python date
+        try:
+            active_date = datetime.strptime(active_date_str, "%Y-%m-%d").date()
+            active_till = datetime.strptime(active_till_str, "%Y-%m-%d").date()
+        except ValueError:
+            return jsonify({"success":False,"error": "Dates must be in YYYY-MM-DD format"}), 400
 
-    db.session.add(job)
-    db.session.commit()
+        # Ensure job category exists
+        job_category = JobCategory.query.get(job_category_id)
+        if not job_category:
+            return jsonify({"success":False,"error": "Job category not found"}), 404
 
-    return jsonify({
-        "success":True,
-        "message": "Job created successfully",
-        "job": {
-            "id": job.id,
-            "title": job.title,
-            "description": job.description,
-            "active_date": str(job.active_date),
-            "active_till": str(job.active_till),
-            "job_category_id": job.job_category_id,
-            "user_id": job.user_id
-        }
-    }), 201
+        existing_job = Job.query.filter_by(
+            title=title,
+            description=description,
+            active_date=active_date,
+            active_till=active_till,
+            job_category_id=job_category_id,
+            user_id=current_user.id,
+            company=company,
+            active=active_status,
+            accepting_applicant=accepting_applicatants,
+        ).first()
+        if existing_job:
+            return jsonify({"success":False,"error": "Job Already exist"}), 409
+        job = Job(
+            title=title,
+            description=description,
+            active_date=active_date,
+            active_till=active_till,
+            job_category_id=job_category_id,
+            user_id=current_user.id,
+            company=company,
+            active=active_status,
+            accepting_applicant=accepting_applicatants,
+        )
 
+        db.session.add(job)
+        db.session.commit()
+
+        return jsonify({
+            "success":True,
+            "message": "Job created successfully",
+            "job": {
+                "id": job.id,
+                "title": job.title,
+                "description": job.description,
+                "active_date": str(job.active_date),
+                "active_till": str(job.active_till),
+                "job_category_id": job.job_category_id,
+                "user_id": job.user_id,
+                "company":company,
+                "active":active_status,
+                "accepting_applicant":accepting_applicatants,
+            }
+        }), 201
+    except Exception as e:
+        return jsonify({"success":False, "message":f"{e}"}),400
 
 # ---------------------------
 # READ all Jobs
@@ -92,7 +179,6 @@ def get_all_jobs():
             "user_id": job.user_id
         })
     return jsonify(result), 200
-
 
 # ---------------------------
 # READ single Job
@@ -118,6 +204,52 @@ def get_job(id):
     }
     return jsonify(result), 200
 
+
+
+# read jobs specific to recruters
+@job_bp.route("/job/jobs_recruiters", methods=["GET"])
+@jwt_required()
+def get_my_jobs():
+    recruiter_id = current_user.id
+    jobs = Job.query.filter_by(user_id=recruiter_id).all()
+
+
+    return jsonify({
+            "success": True,
+            "jobs": [
+                {
+                "id": j.id,
+                "title": j.title,
+                "company": j.company,
+                "active_date": str(j.active_date),
+                "active_till": str(j.active_till),
+                "job_category_id": j.job_category_id,
+                }
+                for j in jobs
+                ],
+                })
+# get only active jobs
+@job_bp.route("/job/jobs_active", methods=["GET"])
+@jwt_required()
+def get_my_active_jobs():
+    recruiter_id = current_user.id
+    jobs = Job.query.filter_by(user_id=recruiter_id, active=True).all()
+
+
+    return jsonify({
+            "success": True,
+            "jobs": [
+                {
+                "id": j.id,
+                "title": j.title,
+                "company": j.company,
+                "active_date": str(j.active_date),
+                "active_till": str(j.active_till),
+                "job_category_id": j.job_category_id,
+                }
+                for j in jobs
+                ],
+                })
 
 # ---------------------------
 # UPDATE a Job
@@ -241,12 +373,13 @@ def create_job_category():
 # READ all JobCategories
 # ---------------------------
 @job_bp.route("/job_category", methods=["GET"])
-@jwt_required()
 def get_all_job_categories():
-    categories = JobCategory.query.all()
-    result = [{"id": c.id, "category_name": c.category_name} for c in categories]
-    return jsonify(result), 200
-
+    try:
+        categories = JobCategory.query.all()
+        result = [{"id": c.id, "category_name": c.category_name} for c in categories]
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"success":False, "message":e})
 # ---------------------------
 # READ single JobCategory
 # ---------------------------
