@@ -1,0 +1,18 @@
+| Exception                 | Status | Meaning                          |
+| ------------------------- | ------ | -------------------------------- |
+| **BadRequest**            | 400    | Invalid JSON / malformed request |
+| **BadRequestKeyError**    | 400    | Missing field in JSON            |
+| **Unauthorized**          | 401    | Authentication required          |
+| **Forbidden**             | 403    | Access denied                    |
+| **NotFound**              | 404    | Resource or route not found      |
+| **MethodNotAllowed**      | 405    | Wrong HTTP method                |
+| **RequestTimeout**        | 408    | Request took too long            |
+| **Conflict**              | 409    | Conflict with resource state     |
+| **LengthRequired**        | 411    | Missing Content-Length header    |
+| **RequestEntityTooLarge** | 413    | Payload too large                |
+| **UnsupportedMediaType**  | 415    | Wrong content type               |
+| **UnprocessableEntity**   | 422    | Validation failed                |
+| **TooManyRequests**       | 429    | Rate limit exceeded              |
+| **InternalServerError**   | 500    | Server error                     |
+| **NotImplemented**        | 501    | Endpoint not implemented         |
+| **ServiceUnavailable**    | 503    | Server overloaded/down           |

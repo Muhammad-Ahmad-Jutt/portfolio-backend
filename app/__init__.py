@@ -7,20 +7,30 @@ from .api import register_blueprints
 from .models.user import User, Role, Permission, Job, JobCategory, JobSalary, JobBatch, JobApplication, Group, user_role, role_permission, user_group
 from flask_cors import CORS
 from flask_login import LoginManager, login_user
+from datetime import timedelta
 
 authorize = Authorize()
 jwt = JWTManager()
 login_manager = LoginManager()
 
-
+# the complete configrations file is updated
+# # and created with the help of ai modling it how i want my app to behave
 def create_app():
     app = Flask(__name__)
     # --------------------------
     # Config & CORS
     # --------------------------
     app.config.from_object(Config)
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    # CORS(app, resources={r"/*": {"origins": "*"}})
+    CORS(
+        app,
+        resources={r"/*": {"origins": "*"}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    )
 
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=9)  # 9 hours
     # --------------------------
     # Initialize extensions
     # --------------------------
