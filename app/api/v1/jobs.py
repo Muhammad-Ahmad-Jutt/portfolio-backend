@@ -14,6 +14,16 @@ job_bp=Blueprint("jobs",__name__)
 
 job_bp = Blueprint("jobs", __name__)
 
+# this function is ai generated 
+def parse_date(date_str): # https://chatgpt.com/c/693c04a1-dbd4-832c-8a14-15e6e5ac3b2f
+    """Safely parse YYYY-MM-DD date strings."""
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return "invalid"
+
 
 @job_bp.route("/job/applied", methods=['GET'])
 @jwt_required()
@@ -59,6 +69,31 @@ def applied_job_details(job_id):
             "user": f"{application.job.user.firstname} {application.job.user.lastname}",
             "application_status":application.application_status,
             "applied_date":application.applied_date
+            # "employer_user_id":user.id
+        }
+        return jsonify(result), 200
+
+
+                # return jsonify({"success":True, "message":"Jo Applied successfully"})
+    except Exception as e:
+        return jsonify({"success":False,"message": f"An exception occured -->'{e}'"}), 404
+@job_bp.route("/job/view_job_details/<int:job_id>", methods=['GET'])
+@jwt_required()
+def view_job_details(job_id):
+    try:
+
+        job = JobApplication.query.get(job_id)
+        result = {
+            # "id": application..id,
+            "title": job.title,
+            "description": job.description,
+            "active": job.active,
+            "accepting_applicant": job.accepting_applicant,
+            "posted_date": job.posted_date.isoformat(),
+            "job_category": job.job_category.category_name if job.job_category else None,
+            "user": f"{job.user.firstname} {job.user.lastname}",
+            # "application_status":application_status,
+            # "applied_date":application.applied_date
             # "employer_user_id":user.id
         }
         return jsonify(result), 200
@@ -195,6 +230,7 @@ def get_job(id):
         "id": job.id,
         "title": job.title,
         "description": job.description,
+        "company":job.company,
         "active": job.active,
         "accepting_applicant": job.accepting_applicant,
         "posted_date": job.posted_date.isoformat(),
@@ -266,20 +302,65 @@ def update_job(id):
         return jsonify({"success":False,"message": "You are not allowed to update this job"}), 403
 
     data = request.get_json()
+    
+
+    # Update all fields from frontend if provided
     job.title = data.get("title", job.title)
     job.description = data.get("description", job.description)
+    job.company = data.get("company", job.company)
+    job.active_date = data.get("active_date", job.active_date)
+    job.active_till = data.get("active_till", job.active_till)
     job.active = data.get("active", job.active)
     job.accepting_applicant = data.get("accepting_applicant", job.accepting_applicant)
 
+    # Handle active_date and active_till
+    active_date_str = data.get("active_date")
+    active_till_str = data.get("active_till")
+
+    active_date = parse_date(active_date_str)
+    active_till = parse_date(active_till_str)
+
+    # Handle invalid date formats
+    if active_date == "invalid" or active_till == "invalid":
+        return jsonify({
+            "success": False,
+            "error": "Dates must be in YYYY-MM-DD format"
+        }), 400
+
+    # Only update if provided
+    if active_date is not None:
+        job.active_date = active_date
+
+    if active_till is not None:
+        job.active_till = active_till
+
+
+    # Update job category if provided
     job_category_id = data.get("job_category_id")
     if job_category_id:
         category = JobCategory.query.get(job_category_id)
         if not category:
-            return jsonify({"success":False,"message": "Invalid job category"}), 400
+            return jsonify({"success": False, "message": "Invalid job category"}), 400
         job.job_category_id = job_category_id
 
     db.session.commit()
-    return jsonify({"success":True,"message": "Job updated", "job_id": job.id}), 200
+
+    return jsonify({
+        "success": True,
+        "message": "Job updated successfully",
+        "job": {
+            "id": job.id,
+            "title": job.title,
+            "description": job.description,
+            "company": job.company,
+            "active_date": job.active_date.isoformat() if job.active_date else None,
+            "active_till": job.active_till.isoformat() if job.active_till else None,
+            "active": job.active,
+            "accepting_applicant": job.accepting_applicant,
+            "job_category_id": job.job_category_id,
+            "job_category": job.job_category.category_name if job.job_category else None
+        }
+    }), 200
 
 
 @job_bp.route("/job/apply", methods=['POST'])
