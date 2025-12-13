@@ -249,6 +249,55 @@ def get_job(id):
 
 
 
+
+# get applications data
+@job_bp.route("/job/job_applications/<int:id>", methods=["GET"])
+@jwt_required()
+def get_job_application_data(id):
+    applications = JobApplication.query.filter_by(job_id =id, employer_user_id=current_user.id).all()
+    for application in applications:
+        print(application.applicant)
+    allresults =[]
+    for application in applications:
+        result = {
+            "applicant_name":application.applicant.firstname,
+            "application_status":application.application_status,
+            "applied_date":application.applied_date,
+            "cv_link":application.cv_link,
+        }
+        allresults.append(result)
+
+    return jsonify(allresults), 200
+
+
+
+
+
+# read jobs applications specific to recruters 
+@job_bp.route("/job/jobs_applications_recruiters", methods=["GET"])
+@jwt_required()
+def get_my_job_aplications():
+    recruiter_id = current_user.id
+    jobs = Job.query.filter_by(user_id=recruiter_id).all()
+    refined_jobs = []
+    for job in jobs:
+        current_data={}
+        job_count = JobApplication.query.filter_by(job_id =job.id, employer_user_id=recruiter_id).count()
+        current_data =   {
+                "id": job.id,
+                "title": job.title,
+                "active":job.active,
+                "active_date": str(job.active_date),
+                "active_till": str(job.active_till),
+                "aplication_count":job_count
+                }
+        refined_jobs.append(current_data)
+    return jsonify({
+            "success": True,
+            "jobs": refined_jobs,
+                })
+
+
 # read jobs specific to recruters
 @job_bp.route("/job/jobs_recruiters", methods=["GET"])
 @jwt_required()
@@ -271,6 +320,7 @@ def get_my_jobs():
                 for j in jobs
                 ],
                 })
+
 # get only active jobs for recruiter
 @job_bp.route("/job/jobs_active", methods=["GET"])
 @jwt_required()
