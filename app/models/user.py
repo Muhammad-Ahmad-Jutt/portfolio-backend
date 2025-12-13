@@ -108,6 +108,7 @@ class JobApplication(db.Model):
     application_status = db.Column(db.String(50), default="Pending")
     applied_date = db.Column(db.Date, default=datetime.utcnow)
     last_update = db.Column(db.Date, default=datetime.utcnow)
+    cv_link = db.Column(db.String(255)) 
     job = db.relationship("Job")
     employer = db.relationship("User", foreign_keys=[employer_user_id])
     applicant = db.relationship("User", foreign_keys=[applicant_user_id])
