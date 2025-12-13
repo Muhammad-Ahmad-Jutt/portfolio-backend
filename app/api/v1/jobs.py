@@ -5,6 +5,8 @@ from werkzeug.exceptions import BadRequest, BadRequestKeyError
 from ...extensions import db
 from ...models.user import Role, User,JobCategory,Job, JobApplication
 from datetime import datetime
+from sqlalchemy.sql import exists
+
 from flask_jwt_extended import jwt_required, get_jwt_identity#, current_user
 from flask_login import current_user,login_required
 job_bp=Blueprint("jobs",__name__)
@@ -226,6 +228,11 @@ def get_job(id):
         return jsonify({"success":False,"message": "Job not found"}), 404
 
     user = User.query.filter_by(id=job.user_id).first()
+    applications_count = JobApplication.query.filter(
+        JobApplication.job_id == id,
+        JobApplication.employer_user_id == user.id
+    ).count()
+
     result = {
         "id": job.id,
         "title": job.title,
@@ -236,7 +243,7 @@ def get_job(id):
         "posted_date": job.posted_date.isoformat(),
         "job_category": job.job_category.category_name if job.job_category else None,
         "user": f"{user.firstname} {user.lastname}",
-        "employer_user_id":user.id
+        "applications_count":applications_count
     }
     return jsonify(result), 200
 
@@ -264,12 +271,47 @@ def get_my_jobs():
                 for j in jobs
                 ],
                 })
-# get only active jobs
+# get only active jobs for recruiter
 @job_bp.route("/job/jobs_active", methods=["GET"])
 @jwt_required()
 def get_my_active_jobs():
     recruiter_id = current_user.id
     jobs = Job.query.filter_by(user_id=recruiter_id, active=True).all()
+
+
+    return jsonify({
+            "success": True,
+            "jobs": [
+                {
+                "id": j.id,
+                "title": j.title,
+                "company": j.company,
+                "active_date": str(j.active_date),
+                "active_till": str(j.active_till),
+                "job_category_id": j.job_category_id,
+                }
+                for j in jobs
+                ],
+                })
+# get only active jobs for job_seeker
+@job_bp.route("/job/get_all_active", methods=["GET"])
+@jwt_required()
+def get_all_active_jobs():
+    job_seeker_id = current_user.id
+
+    jobs = (
+        Job.query
+        .filter(
+            Job.active == True,
+            Job.accepting_applicant == True,
+            ~exists().where(
+                (JobApplication.job_id == Job.id) &
+                (JobApplication.applicant_user_id == job_seeker_id)
+            )
+        )
+        .all()
+    )
+    print(jobs)
 
 
     return jsonify({
