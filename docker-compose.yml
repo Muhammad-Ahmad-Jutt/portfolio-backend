@@ -3,5 +3,5 @@ services:
     build: .
     container_name: python-flask-server
     ports:
-      - "5000:5000"  # Map container port 8000 to host 8000
-    command: sh -c "python run.py"  # Bind to all interfaces
+      - "5000:5000" 
+    entrypoint: ["./entrypoint.sh"]
