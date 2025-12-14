@@ -27,6 +27,36 @@ def parse_date(date_str): # https://chatgpt.com/c/693c04a1-dbd4-832c-8a14-15e6e5
         return "invalid"
 
 
+@job_bp.route("/job/application_status_update", methods=['Post'])
+@jwt_required()
+def update_application_status():
+    try:
+        current_user_id = int(get_jwt_identity())
+        data= request.get_json()
+        job_id = data.get('job_id')
+        status = data.get('status')
+        applicant_user_id = data.get('applicant_user_id')
+        application = JobApplication.query.filter_by(job_id=job_id, employer_user_id=current_user_id,applicant_user_id=applicant_user_id).first()
+        application.application_status =status
+        db.session.commit()
+        print(application)
+        return jsonify({
+            "success": True,
+            "message": "Application status updated successfully"
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+    
+
+
+
+
+
 @job_bp.route("/job/applied", methods=['GET'])
 @jwt_required()
 def applied_jobs():
@@ -255,15 +285,16 @@ def get_job(id):
 @jwt_required()
 def get_job_application_data(id):
     applications = JobApplication.query.filter_by(job_id =id, employer_user_id=current_user.id).all()
-    for application in applications:
-        print(application.applicant)
     allresults =[]
     for application in applications:
         result = {
-            "applicant_name":application.applicant.firstname,
-            "application_status":application.application_status,
-            "applied_date":application.applied_date,
-            "cv_link":application.cv_link,
+            "job_id": application.job_id,
+            "employer_user_id": application.employer_user_id,
+            "applicant_user_id": application.applicant_user_id,
+            "applicant_name": application.applicant.firstname,
+            "application_status": application.application_status,
+            "applied_date": application.applied_date,
+            "cv_link": application.cv_link
         }
         allresults.append(result)
 
