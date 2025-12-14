@@ -47,6 +47,7 @@ class User(db.Model, UserMixin, AllowancesMixin):
     gender = db.Column(db.String(1))
     dob = db.Column(db.Date)
     account_created = db.Column(db.DateTime, default=datetime.utcnow)
+    blocked = db.Column(db.Boolean, nullable=False, default=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     phone_no = db.Column(db.String(20))
