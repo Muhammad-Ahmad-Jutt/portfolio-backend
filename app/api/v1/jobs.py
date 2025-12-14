@@ -8,7 +8,7 @@ from sqlalchemy.sql import exists
 
 from flask_jwt_extended import jwt_required, get_jwt_identity#, current_user
 from flask_login import current_user,login_required
-job_bp=Blueprint("jobs",__name__)
+
 
 
 
@@ -61,7 +61,6 @@ def applied_jobs():
     try:
         current_user_id = int(get_jwt_identity())
         applications = JobApplication.query.filter_by(applicant_user_id=current_user_id).all()
-        print(applications)
         result = []
         for job in applications:
             result.append({
@@ -402,7 +401,6 @@ def get_all_active_jobs():
         )
         .all()
     )
-    print(jobs)
 
 
     return jsonify({
@@ -504,6 +502,7 @@ def update_job(id):
 def apply_job():
     data = request.json
     id = data.get("job_id")
+    cv_url = data.get("cv_url")
     if not id:
 
         return ({"success":False, "message":"Id is required"})
@@ -525,10 +524,10 @@ def apply_job():
 
         job_application = JobApplication(employer_user_id=job_id.user_id,
                                          applicant_user_id=current_user_id,
-                                         job_id=job_id.id)
+                                         job_id=job_id.id, cv_link=cv_url)
         db.session.add(job_application)
         db.session.commit()
-        return jsonify({"success":True, "message":"Jo Applied successfully"})
+        return jsonify({"success":True, "message":"Jo Applied successfully","cv_url":cv_url})
     except Exception as e:
         return jsonify({"success":False,"message": f"An exception occured -->'{e}'"}), 404
 
