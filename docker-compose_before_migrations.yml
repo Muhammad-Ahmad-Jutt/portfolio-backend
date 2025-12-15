@@ -6,4 +6,4 @@ services:
       - "5000:5000" 
     volumes:
       - ./migrations:/migrations
-    entrypoint: ["./entrypoint.sh"]
+    command: python run.py
