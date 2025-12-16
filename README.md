@@ -29,17 +29,29 @@ permission_required:
 def permission_required(*permission_numbers):
     """
     Custom decorator for checking user permissions.
-    Function inspired by AI: https://chatgpt.com/c/693e49bc-8530-832b-9964-c52d31a1dcb0
+    Function inspired by AI: https://chatgpt.com/share/6941146d-9168-8009-962b-6b790d1baf38
     """
     # Implementation goes here
-
+create job api updated to add validations in form using this :https://chatgpt.com/share/694125a6-7db4-8009-afec-bd938c11b4bf
 parse_date:
 def parse_date(date_str):
+    Function inspired by AI: https://chatgpt.com/share/694113bf-60b8-8009-91ad-3b503b109c3c
     """
-    Utility function to parse a string into a Python date object.
-    Function inspired by AI: https://chatgpt.com/c/693c04a1-dbd4-832c-8a14-15e6e5ac3b2f
-    """
-    # Implementation goes here
+sign up validations:https://chatgpt.com/share/6941146d-9168-8009-962b-6b790d1baf38
+
+job category crud: https://chatgpt.com/share/69411dab-aefc-8009-98f0-e7f153d16f62
+
+the database tables are generated with help of ai using the erd cvs export https://lucid.app/lucidchart/47b5ed82-089f-4945-9ef3-df1771af7d9f/edit?viewport_loc=360%2C-283%2C2335%2C1007%2C0_0&invitationId=inv_962072f3-c84d-4a1c-a464-5fe7b44e79de
+
+the cv to db tables chat :https://chatgpt.com/share/694123e6-d11c-8009-a3d4-b61b9639c696
+
+cors configration and adding comments on that file :https://chatgpt.com/share/694125a6-7db4-8009-afec-bd938c11b4bf
+
+The project structure is inspired by the tutorial https://muneebdev.com/flask-project-structure-best-practices/.
+
+Docker entry point file creation: https://chatgpt.com/share/69412776-8f6c-8009-8f4c-481e228f142b
+
+Readme file creation link :https://chatgpt.com/share/69412776-8f6c-8009-8f4c-481e228f142b
 
 ## Setup and Usage
 
